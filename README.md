@@ -192,6 +192,42 @@ infisical run --path /vc -- claude
 # Then: "call crane_context"
 ```
 
+### Deploying to Fleet (SOP)
+
+After making changes to crane-mcp, you MUST deploy to all dev machines:
+
+```bash
+# 1. Test locally on machine23
+cd ~/dev/crane-mcp
+npm run build
+npm test
+crane --list  # verify CLI works
+
+# 2. Commit and push
+git add -A && git commit -m "fix: your change"
+git push origin main
+
+# 3. Deploy to fleet
+cd ~/dev/crane-console
+./scripts/deploy-crane-mcp.sh
+```
+
+The deploy script will:
+- SSH to each machine (smdmbp27, smdThink, ubuntu)
+- Stash any local changes
+- Pull latest from origin/main
+- Run `npm run build`
+
+**Dry run first:**
+```bash
+DRY_RUN=true ./scripts/deploy-crane-mcp.sh
+```
+
+**Deploy to specific machines:**
+```bash
+MACHINES="smdmbp27 ubuntu" ./scripts/deploy-crane-mcp.sh
+```
+
 ## Architecture
 
 ```
