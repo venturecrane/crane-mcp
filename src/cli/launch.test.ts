@@ -33,14 +33,14 @@ describe('launch CLI', () => {
       vi.mocked(spawn).mockReturnValue(mockChild as any);
 
       // Simulate what launchClaude does - without shell: true to avoid DEP0190 and loop issues
-      spawn('infisical', ['run', '--path', '/vc', '--', 'claude'], {
+      spawn('infisical', ['run', '--silent', '--path', '/vc', '--', 'claude'], {
         stdio: 'inherit',
         cwd: '/Users/testuser/dev/crane-console',
       });
 
       expect(spawn).toHaveBeenCalledWith(
         'infisical',
-        ['run', '--path', '/vc', '--', 'claude'],
+        ['run', '--silent', '--path', '/vc', '--', 'claude'],
         expect.objectContaining({
           stdio: 'inherit',
           cwd: '/Users/testuser/dev/crane-console',

@@ -149,7 +149,8 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
   process.chdir(venture.localPath!);
 
   // Build command arguments
-  const args = ["run", "--path", infisicalPath, "--", "claude"];
+  // --silent suppresses infisical update warnings and tips
+  const args = ["run", "--silent", "--path", infisicalPath, "--", "claude"];
 
   if (debug) {
     console.log(`[debug] cwd: ${venture.localPath}`);
