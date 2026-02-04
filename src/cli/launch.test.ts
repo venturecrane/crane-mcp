@@ -26,16 +26,16 @@ describe('launch CLI', () => {
   });
 
   describe('spawn behavior', () => {
-    it('spawn creates child process with correct arguments', () => {
+    it('spawn creates child process with correct arguments (no shell)', () => {
       const mockChild = {
         on: vi.fn().mockReturnThis(),
       };
       vi.mocked(spawn).mockReturnValue(mockChild as any);
 
-      // Simulate what launchClaude does
+      // Simulate what launchClaude does - without shell: true to avoid DEP0190 and loop issues
       spawn('infisical', ['run', '--path', '/vc', '--', 'claude'], {
         stdio: 'inherit',
-        shell: true,
+        cwd: '/Users/testuser/dev/crane-console',
       });
 
       expect(spawn).toHaveBeenCalledWith(
@@ -43,6 +43,27 @@ describe('launch CLI', () => {
         ['run', '--path', '/vc', '--', 'claude'],
         expect.objectContaining({
           stdio: 'inherit',
+          cwd: '/Users/testuser/dev/crane-console',
+        })
+      );
+    });
+
+    it('spawn should NOT use shell: true (fixes loop issue)', () => {
+      const mockChild = {
+        on: vi.fn().mockReturnThis(),
+      };
+      vi.mocked(spawn).mockReturnValue(mockChild as any);
+
+      spawn('infisical', ['run', '--path', '/ke', '--', 'claude'], {
+        stdio: 'inherit',
+        cwd: '/Users/testuser/dev/ke-console',
+      });
+
+      // Verify shell is NOT being used
+      expect(spawn).toHaveBeenCalledWith(
+        'infisical',
+        expect.any(Array),
+        expect.not.objectContaining({
           shell: true,
         })
       );

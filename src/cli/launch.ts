@@ -128,7 +128,7 @@ function checkInfisicalSetup(repoPath: string, infisicalPath: string): { ok: boo
   }
 }
 
-function launchClaude(venture: VentureWithRepo): void {
+function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
   const infisicalPath = INFISICAL_PATHS[venture.code];
   if (!infisicalPath) {
     console.error(`No Infisical path configured for venture: ${venture.code}`);
@@ -145,34 +145,59 @@ function launchClaude(venture: VentureWithRepo): void {
   console.log(`\n-> Switching to ${venture.name}...`);
   console.log(`-> Launching Claude with ${infisicalPath} secrets...\n`);
 
-  // Change to the repo directory and exec infisical run
+  // Change to the repo directory
   process.chdir(venture.localPath!);
 
-  // Use shell command string to avoid deprecation warning (DEP0190)
-  const child = spawn(
-    `infisical run --path ${infisicalPath} -- claude`,
-    [],
-    {
-      stdio: "inherit",
-      shell: true,
-    }
-  );
+  // Build command arguments
+  const args = ["run", "--path", infisicalPath, "--", "claude"];
+
+  if (debug) {
+    console.log(`[debug] cwd: ${venture.localPath}`);
+    console.log(`[debug] command: infisical ${args.join(" ")}`);
+  }
+
+  // Use spawn without shell: true to avoid DEP0190 warning and potential loop issues
+  // The shell option can cause problems with process spawning on some machines
+  const child = spawn("infisical", args, {
+    stdio: "inherit",
+    cwd: venture.localPath!,
+  });
 
   child.on("error", (err) => {
-    console.error("Failed to launch:", err.message);
+    console.error(`Failed to launch infisical: ${err.message}`);
+    if (err.message.includes("ENOENT")) {
+      console.error("Is infisical installed and in PATH?");
+    }
     process.exit(1);
   });
 
-  child.on("exit", (code) => {
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      if (debug) {
+        console.log(`[debug] Process terminated by signal: ${signal}`);
+      }
+      // Map common signals to exit codes
+      const signalCodes: Record<string, number> = {
+        SIGTERM: 143,
+        SIGINT: 130,
+        SIGKILL: 137,
+      };
+      process.exit(signalCodes[signal] || 128);
+    }
+    if (debug && code !== 0) {
+      console.log(`[debug] Process exited with code: ${code}`);
+    }
     process.exit(code || 0);
   });
 }
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  const debug = args.includes("--debug") || args.includes("-d");
+  const filteredArgs = args.filter((a) => a !== "--debug" && a !== "-d");
 
   // Handle --list flag
-  if (args.includes("--list") || args.includes("-l")) {
+  if (filteredArgs.includes("--list") || filteredArgs.includes("-l")) {
     const ventures = await fetchVentures();
     const withRepos = matchVenturesToRepos(ventures);
     printVentureList(withRepos);
@@ -180,7 +205,7 @@ async function main(): Promise<void> {
   }
 
   // Handle --help flag
-  if (args.includes("--help") || args.includes("-h")) {
+  if (filteredArgs.includes("--help") || filteredArgs.includes("-h")) {
     console.log(`
 crane - Venture launcher for Claude
 
@@ -188,6 +213,7 @@ Usage:
   crane              Interactive menu - pick a venture, launch Claude
   crane <code>       Direct launch - e.g., crane vc, crane ke
   crane --list       Show ventures without launching
+  crane --debug      Enable debug output for troubleshooting
   crane --help       Show this help
 
 Venture codes:
@@ -199,6 +225,7 @@ Venture codes:
 Examples:
   crane              # Show menu, select venture
   crane vc           # Launch directly into Venture Crane
+  crane ke --debug   # Launch with debug output
   crane --list       # List all ventures and their local paths
 `);
     return;
@@ -209,8 +236,9 @@ Examples:
   const withRepos = matchVenturesToRepos(ventures);
 
   // Direct launch by code
-  if (args.length > 0) {
-    const code = args[0].toLowerCase();
+  const nonFlagArgs = filteredArgs.filter((a) => !a.startsWith("-"));
+  if (nonFlagArgs.length > 0) {
+    const code = nonFlagArgs[0].toLowerCase();
     const venture = withRepos.find((v) => v.code === code);
 
     if (!venture) {
@@ -225,7 +253,7 @@ Examples:
       process.exit(1);
     }
 
-    launchClaude(venture);
+    launchClaude(venture, debug);
     return;
   }
 
@@ -240,7 +268,7 @@ Examples:
     process.exit(0);
   }
 
-  launchClaude(selected);
+  launchClaude(selected, debug);
 }
 
 main().catch((err) => {
