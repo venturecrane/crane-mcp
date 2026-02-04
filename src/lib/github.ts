@@ -52,11 +52,11 @@ export function getIssuesByLabel(
   }
 
   try {
-    const labelQuery = labels.map((l) => `label:"${l}"`).join("+");
-    const query = `repo:${owner}/${repo}+is:issue+is:open+${labelQuery}`;
+    const labelQuery = labels.map((l) => `label:${l}`).join(" ");
+    const query = `repo:${owner}/${repo} is:issue is:open ${labelQuery}`;
 
     const result = execSync(
-      `gh api -X GET /search/issues -f q="${query}" -f per_page=${limit} --jq '.items | map({number, title, url: .html_url})'`,
+      `gh api -X GET /search/issues -f q='${query}' -f per_page=${limit} --jq '.items | map({number, title, url: .html_url})'`,
       { encoding: "utf-8", stdio: "pipe" }
     );
 
