@@ -1,6 +1,6 @@
 # crane-mcp
 
-MCP server for Venture Crane development workflow. Provides tools for session management, context validation, and handoffs.
+MCP server for Venture Crane development workflow. Provides a launcher CLI and 7 MCP tools for session management, context validation, and handoffs.
 
 ## Installation
 
@@ -8,7 +8,7 @@ MCP server for Venture Crane development workflow. Provides tools for session ma
 # Install globally
 npm install -g @venturecrane/crane-mcp
 
-# Register with Claude Code
+# Register MCP server with Claude Code
 claude mcp add crane -- crane-mcp
 ```
 
@@ -18,19 +18,53 @@ claude mcp add crane -- crane-mcp
 - Infisical CLI (for secrets injection)
 - Repos cloned to `~/dev/` (any naming convention works - matched by git remote)
 
-## Usage
+## Quick Start: The `crane` Launcher
 
-Start Claude with Infisical to inject the API key:
+The `crane` command is the primary way to start a Claude session:
 
 ```bash
-infisical run --path /vc -- claude
+crane              # Interactive menu - pick a venture, launch Claude
+crane vc           # Direct launch into Venture Crane
+crane ke           # Direct launch into Kid Expenses
+crane --list       # Show ventures without launching
 ```
 
-Then use crane tools:
+### What it does
+
+1. Fetches available ventures from the crane-context API
+2. Scans `~/dev/` for matching git repos
+3. Lets you select a venture (or specify directly)
+4. Launches: `cd $repo && infisical run --path /$code -- claude`
+
+### Example
+
+```
+$ crane
+
+Crane Console Launcher
+======================
+
+  1) Venture Crane      [vc]   ~/dev/crane-console
+  2) Kid Expenses       [ke]   ~/dev/ke-console
+  3) Silicon Crane      [sc]   ~/dev/sc-console
+  4) Durgan Field Guide [dfg]  ~/dev/dfg-console
+
+Select (1-4): 1
+
+-> Switching to Venture Crane...
+-> Launching Claude with /vc secrets...
+```
+
+## MCP Tools
+
+Once inside Claude, these tools are available:
 
 | Tool | Purpose |
 |------|---------|
-| `crane_sod` | Start of day - validates context, guides to correct repo |
+| `crane_preflight` | Run environment checks before starting |
+| `crane_sod` | Start of day - validates context, shows P0s, weekly plan |
+| `crane_status` | Full GitHub issue breakdown by queue |
+| `crane_plan` | Read weekly plan from docs/planning/WEEKLY_PLAN.md |
 | `crane_ventures` | List available ventures and their local paths |
 | `crane_context` | Get current venture, repo, branch info |
 | `crane_handoff` | Create session handoff (EOD or passing work) |
@@ -44,6 +78,22 @@ Then use crane tools:
 
 ## Tools
 
+### crane_preflight
+
+Run environment validation before starting a session.
+
+```
+Parameters: none
+
+Checks:
+  - CRANE_CONTEXT_KEY is set
+  - gh CLI is authenticated
+  - Current directory is a git repo
+  - API connectivity is working
+
+Returns: Pass/fail status for each check
+```
+
 ### crane_sod
 
 Initialize session and validate you're in the right repo.
@@ -55,6 +105,34 @@ Parameters:
 Returns:
   - If in valid repo: confirms context, starts API session
   - If not: lists ventures with local paths, guides navigation
+```
+
+### crane_status
+
+Get full GitHub issue breakdown by queue.
+
+```
+Parameters: none
+
+Returns: Issues organized by queue:
+  - P0 (critical)
+  - Ready (can start now)
+  - In Progress (being worked)
+  - Blocked (waiting on something)
+  - Triage (needs categorization)
+```
+
+### crane_plan
+
+Read the weekly plan from docs/planning/WEEKLY_PLAN.md.
+
+```
+Parameters: none
+
+Returns:
+  - Priority venture for the week
+  - Target issues
+  - Plan age (days since last update)
 ```
 
 ### crane_ventures

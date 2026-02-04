@@ -1,11 +1,12 @@
 {
   "name": "@venturecrane/crane-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for Venture Crane development workflow",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "crane-mcp": "./bin/crane-mcp.js"
+    "crane-mcp": "./bin/crane-mcp.js",
+    "crane": "./bin/crane.js"
   },
   "scripts": {
     "build": "tsc",
