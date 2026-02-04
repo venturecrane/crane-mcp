@@ -14,11 +14,14 @@ import { sodInputSchema, executeSod } from "./tools/sod.js";
 import { venturesInputSchema, executeVentures } from "./tools/ventures.js";
 import { contextInputSchema, executeContext } from "./tools/context.js";
 import { handoffInputSchema, executeHandoff } from "./tools/handoff.js";
+import { preflightInputSchema, executePreflight } from "./tools/preflight.js";
+import { statusInputSchema, executeStatus } from "./tools/status.js";
+import { planInputSchema, executePlan } from "./tools/plan.js";
 
 const server = new Server(
   {
     name: "crane-mcp",
-    version: "0.1.0",
+    version: "0.2.0",
   },
   {
     capabilities: {
@@ -32,9 +35,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
+        name: "crane_preflight",
+        description:
+          "Run environment preflight checks. Validates CRANE_CONTEXT_KEY, gh CLI auth, git repo, and API connectivity. " +
+          "Call this before crane_sod to ensure environment is ready.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
         name: "crane_sod",
         description:
-          "Start of Day - Initialize session, validate context, and guide to correct repo. " +
+          "Start of Day - Initialize session, validate context, show P0 issues, weekly plan status, and active sessions. " +
           "Call this at the start of every session to ensure you're in the right place.",
         inputSchema: {
           type: "object",
@@ -44,6 +57,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: "Venture code to work on (vc, ke, dfg, sc). Optional - if not provided, lists available ventures.",
             },
           },
+        },
+      },
+      {
+        name: "crane_status",
+        description:
+          "Get full GitHub issue breakdown: P0, ready, in-progress, blocked, and triage queues. " +
+          "Use this when you need to see the complete work queue.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "crane_plan",
+        description:
+          "Read the weekly plan from docs/planning/WEEKLY_PLAN.md. " +
+          "Shows priority venture, target issues, and plan age/staleness.",
+        inputSchema: {
+          type: "object",
+          properties: {},
         },
       },
       {
@@ -98,9 +131,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
+      case "crane_preflight": {
+        const input = preflightInputSchema.parse(args);
+        const result = await executePreflight(input);
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      }
+
       case "crane_sod": {
         const input = sodInputSchema.parse(args);
         const result = await executeSod(input);
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      }
+
+      case "crane_status": {
+        const input = statusInputSchema.parse(args);
+        const result = await executeStatus(input);
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      }
+
+      case "crane_plan": {
+        const input = planInputSchema.parse(args);
+        const result = await executePlan(input);
         return {
           content: [{ type: "text", text: result.message }],
         };

@@ -22,6 +22,14 @@ export interface Session {
   created_at: string;
 }
 
+export interface ActiveSession {
+  agent: string;
+  repo: string;
+  track?: number;
+  issue_number?: number;
+  created_at: string;
+}
+
 export interface SodResponse {
   session: Session;
   last_handoff?: {
@@ -30,6 +38,7 @@ export interface SodResponse {
     created_at: string;
     status_label: string;
   };
+  active_sessions?: ActiveSession[];
 }
 
 export interface HandoffRequest {
