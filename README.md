@@ -1,5 +1,9 @@
 # crane-mcp
 
+> **DEPRECATED**: This repo has been merged into [crane-console](https://github.com/venturecrane/crane-console).
+> Code now lives at `crane-console/packages/crane-mcp/`.
+> This repo will be archived after 2026-02-18.
+
 MCP server for Venture Crane development workflow. Provides a launcher CLI and 7 MCP tools for session management, context validation, and handoffs.
 
 ## Installation
