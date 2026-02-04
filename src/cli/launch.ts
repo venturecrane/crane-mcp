@@ -11,7 +11,9 @@
  */
 
 import { createInterface } from "readline";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
+import { existsSync } from "fs";
+import { join } from "path";
 import { Venture } from "../lib/crane-api.js";
 import { scanLocalRepos, LocalRepo } from "../lib/repo-scanner.js";
 
@@ -101,10 +103,42 @@ async function promptSelection(
   });
 }
 
+function checkInfisicalSetup(repoPath: string, infisicalPath: string): { ok: boolean; error?: string } {
+  // Check for .infisical.json in repo
+  const configPath = join(repoPath, ".infisical.json");
+  if (!existsSync(configPath)) {
+    return {
+      ok: false,
+      error: `Missing .infisical.json in ${repoPath}\nRun: cp ~/dev/crane-console/.infisical.json ${repoPath}/`,
+    };
+  }
+
+  // Check if Infisical path exists by trying to list secrets
+  try {
+    execSync(`infisical secrets --path ${infisicalPath} --env dev`, {
+      cwd: repoPath,
+      stdio: "pipe",
+    });
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      error: `Infisical path '${infisicalPath}' not found.\nCreate it in Infisical web UI: https://app.infisical.com`,
+    };
+  }
+}
+
 function launchClaude(venture: VentureWithRepo): void {
   const infisicalPath = INFISICAL_PATHS[venture.code];
   if (!infisicalPath) {
     console.error(`No Infisical path configured for venture: ${venture.code}`);
+    process.exit(1);
+  }
+
+  // Validate Infisical setup before launching
+  const check = checkInfisicalSetup(venture.localPath!, infisicalPath);
+  if (!check.ok) {
+    console.error(`\nInfisical setup error for ${venture.name}:\n${check.error}`);
     process.exit(1);
   }
 
@@ -114,9 +148,10 @@ function launchClaude(venture: VentureWithRepo): void {
   // Change to the repo directory and exec infisical run
   process.chdir(venture.localPath!);
 
+  // Use shell command string to avoid deprecation warning (DEP0190)
   const child = spawn(
-    "infisical",
-    ["run", "--path", infisicalPath, "--", "claude"],
+    `infisical run --path ${infisicalPath} -- claude`,
+    [],
     {
       stdio: "inherit",
       shell: true,
